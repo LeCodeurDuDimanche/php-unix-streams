@@ -7,8 +7,9 @@ use lecodeurdudimanche\UnixStream\IOException;
 class UnixStreamServer {
 
     protected $socket;
+    protected $serializer;
 
-    public function __construct(string $file)
+    public function __construct(string $file, ?MessageSerializer $serializer = null)
     {
         //TODO: check errors
         if (! is_dir(dirname($file)))
@@ -21,6 +22,8 @@ class UnixStreamServer {
         if (! $this->socket)
             throw new IOException("Cannot create a listening socket on file $file : $errstr ($errno)");
 
+        $this->serializer = $serializer ?? new JSONMessageSerializer;
+
     }
 
     public function accept(bool $wait = true) : ?UnixStream
@@ -28,7 +31,7 @@ class UnixStreamServer {
         $socket = @stream_socket_accept($this->socket, $wait ? -1 : 0);
         if ($socket === false)
             return null;
-        return UnixStream::fromExistingSocket($socket);
+        return UnixStream::fromExistingSocket($socket, $this->serializer);
     }
 
     public function close() : void

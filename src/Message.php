@@ -2,7 +2,7 @@
 
 namespace lecodeurdudimanche\UnixStream;
 
-abstract class Message {
+class Message {
     protected $type, $data;
 
     public function __construct(int $type, $data)
@@ -10,9 +10,6 @@ abstract class Message {
         $this->type = $type;
         $this->data = $data;
     }
-
-    public abstract static function fromJSON(string $data);
-    public abstract function toJSON();
 
     public function getType() : int
     {

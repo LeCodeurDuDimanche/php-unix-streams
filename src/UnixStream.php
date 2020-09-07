@@ -8,8 +8,9 @@ class UnixStream {
 
     protected $handle;
     protected $isServer;
+    protected $serializer;
 
-    public function __construct(?string $file = null, $messageClass)
+    public function __construct(?string $file = null, ?MessageSerializer $serializer = null)
     {
         if ($file)
         {
@@ -17,7 +18,7 @@ class UnixStream {
             if (! $this->handle)
                 throw new IOException("Cannot connect the socket to file $file : $errstr ($errno)");
         }
-        $this->messageClass = $messageClass;
+        $this->serializer = $serializer ?? new JSONMessageSerializer;
     }
 
     public static function fromExistingSocket($socket)
@@ -30,7 +31,7 @@ class UnixStream {
     //TODO: check for IO errors
     public function write(Message $message) : void
     {
-        $data = $message->toJSON();
+        $data = $this->serializer->toJSON($message);
         fprintf($this->handle, "%d\n%s", strlen($data), $data);
     }
 
@@ -45,7 +46,7 @@ class UnixStream {
         }
 
         $data = fread($this->handle, $size);
-        return $this->messageClass::fromJSON($data);
+        return $this->serializer->fromJSON($data);
     }
 
     public function readNext(array $acceptedTypes, bool $wait = true) : ?Message
