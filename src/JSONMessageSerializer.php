@@ -6,7 +6,7 @@ class JSONMessageSerializer implements MessageSerializer {
 
     public function fromJSON(string $data) : ?Message
     {
-        $data = json_decode($data);
+        $data = json_decode($data, true);
 
         if (!$data || !array_key_exists('type', $data) || ! array_key_exists('data', $data) || ! is_integer($data['type']))
             return null;
