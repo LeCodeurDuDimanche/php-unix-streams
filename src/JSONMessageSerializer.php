@@ -4,7 +4,7 @@ namespace lecodeurdudimanche\UnixStream;
 
 class JSONMessageSerializer implements MessageSerializer {
 
-    public function fromJSON(string $data) : Message
+    public function fromJSON(string $data) : ?Message
     {
         $data = json_decode($data);
 
