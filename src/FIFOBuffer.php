@@ -19,6 +19,28 @@ class FIFOBuffer {
         return array_shift($this->array);
     }
 
+    public function peak() : ?Message
+    {
+        if ($this->isEmpty())
+            return null;
+        return $this->array[0];
+    }
+
+    public function get(int $index) : ?Message
+    {
+        if ($index < 0 || $index >= $this->length())
+            return null;
+        return $this->array[$index];
+    }
+
+    public function remove(int $index) : bool
+    {
+        if ($index < 0 || $index >= $this->length())
+            return false;
+        array_splice($this->array, $index, 1);
+        return true; 
+    }
+
     public function queue(Message $message) : void
     {
         array_push($this->array, $message);

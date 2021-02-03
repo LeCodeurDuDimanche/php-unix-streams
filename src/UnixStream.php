@@ -6,6 +6,11 @@ use lecodeurdudimanche\UnixStream\IOException;
 
 class UnixStream {
 
+
+    public const MODE_PEAK = 0;
+    public const MODE_READ = 1;
+    public const MODE_DISCARD = 2;
+
     protected $handle;
     protected $isServer;
     protected $serializer;
@@ -37,12 +42,8 @@ class UnixStream {
         fprintf($this->handle, "%d\n%s", strlen($data), $data);
     }
 
-    public function read() : ?Message
+    private function readFromStream() : ?Message
     {
-        if (! $this->buffer->isEmpty()) {
-            return $this->buffer->dequeue();
-        }
-
         $read = fscanf($this->handle, "%d", $size); // Consumes line end character
         if ($read != 1)
         {
@@ -55,20 +56,47 @@ class UnixStream {
         return $this->serializer->fromJSON($data);
     }
 
-    public function readNext(array $acceptedTypes, bool $wait = true, bool $discard = true) : ?Message
+    public function read(int $mode = MODE_READ) : ?Message
     {
+        if (! $this->buffer->isEmpty()) {
+            return $mode == MODE_READ ? $this->buffer->dequeue() : $this->buffer->peak();
+        }
+
+        $message = $this->readFromStream();
+        if ($mode == MODE_PEAK)
+            $this->buffer->queue($message);
+        return $message;
+    }
+
+    public function readNext(array $acceptedTypes, bool $wait = true, int $mode = MODE_DISCARD) : ?Message
+    {
+        for ($i = 0; $i < $this->buffer->length(); $i++)
+        {
+            $message = $mode == MODE_DISCARD ? $this->buffer->dequeue() : $this->buffer->get($i);
+            if ($message && in_array($message->getType(), $acceptedTypes)) {
+                if ($mode == MODE_READ) $this->buffer->remove($i);
+                return $message;
+            }
+        }
+
         while ($wait || $this->hasData())
         {
             while ($wait && !$this->waitData(50000)) ;
 
-            $message = $this->read();
+            $message = $this->readFromStream();
+
             if ($message && in_array($message->getType(), $acceptedTypes))
                 return $message;
-            else if (! $discard) {
+            else if ($mode == MODE_READ) {
                 $this->buffer->queue($message);
             }
         }
         return null;
+    }
+
+    public function addToBuffer(Message $m) : void
+    {
+        $this->buffer->queue($m);
     }
 
     public function hasData(): bool
