@@ -9,6 +9,7 @@ class UnixStream {
     protected $handle;
     protected $isServer;
     protected $serializer;
+    protected $buffer;
 
     public function __construct(?string $file = null, ?MessageSerializer $serializer = null)
     {
@@ -19,6 +20,7 @@ class UnixStream {
                 throw new IOException("Cannot connect the socket to file $file : $errstr ($errno)");
         }
         $this->serializer = $serializer ?? new JSONMessageSerializer;
+        $this->buffer = new FIFOBuffer();
     }
 
     public static function fromExistingSocket($socket)
@@ -37,6 +39,10 @@ class UnixStream {
 
     public function read() : ?Message
     {
+        if (! $this->buffer->isEmpty()) {
+            return $this->buffer->dequeue();
+        }
+
         $read = fscanf($this->handle, "%d", $size); // Consumes line end character
         if ($read != 1)
         {
@@ -49,7 +55,7 @@ class UnixStream {
         return $this->serializer->fromJSON($data);
     }
 
-    public function readNext(array $acceptedTypes, bool $wait = true) : ?Message
+    public function readNext(array $acceptedTypes, bool $wait = true, bool $discard = true) : ?Message
     {
         while ($wait || $this->hasData())
         {
@@ -58,6 +64,9 @@ class UnixStream {
             $message = $this->read();
             if ($message && in_array($message->getType(), $acceptedTypes))
                 return $message;
+            else if (! $discard) {
+                $this->buffer->queue($message);
+            }
         }
         return null;
     }
