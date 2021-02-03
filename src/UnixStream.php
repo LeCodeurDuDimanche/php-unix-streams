@@ -56,25 +56,25 @@ class UnixStream {
         return $this->serializer->fromJSON($data);
     }
 
-    public function read(int $mode = MODE_READ) : ?Message
+    public function read(int $mode = self::MODE_READ) : ?Message
     {
         if (! $this->buffer->isEmpty()) {
-            return $mode == MODE_READ ? $this->buffer->dequeue() : $this->buffer->peak();
+            return $mode == self::MODE_READ ? $this->buffer->dequeue() : $this->buffer->peak();
         }
 
         $message = $this->readFromStream();
-        if ($mode == MODE_PEAK)
+        if ($mode == self::MODE_PEAK)
             $this->buffer->queue($message);
         return $message;
     }
 
-    public function readNext(array $acceptedTypes, bool $wait = true, int $mode = MODE_DISCARD) : ?Message
+    public function readNext(array $acceptedTypes, bool $wait = true, int $mode = self::MODE_DISCARD) : ?Message
     {
         for ($i = 0; $i < $this->buffer->length(); $i++)
         {
-            $message = $mode == MODE_DISCARD ? $this->buffer->dequeue() : $this->buffer->get($i);
+            $message = $mode == self::MODE_DISCARD ? $this->buffer->dequeue() : $this->buffer->get($i);
             if ($message && in_array($message->getType(), $acceptedTypes)) {
-                if ($mode == MODE_READ) $this->buffer->remove($i);
+                if ($mode == self::MODE_READ) $this->buffer->remove($i);
                 return $message;
             }
         }
@@ -87,7 +87,7 @@ class UnixStream {
 
             if ($message && in_array($message->getType(), $acceptedTypes))
                 return $message;
-            else if ($mode == MODE_READ) {
+            else if ($mode == self::MODE_READ) {
                 $this->buffer->queue($message);
             }
         }

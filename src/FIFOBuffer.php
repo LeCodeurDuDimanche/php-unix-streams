@@ -38,7 +38,7 @@ class FIFOBuffer {
         if ($index < 0 || $index >= $this->length())
             return false;
         array_splice($this->array, $index, 1);
-        return true; 
+        return true;
     }
 
     public function queue(Message $message) : void
